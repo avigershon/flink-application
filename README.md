@@ -22,11 +22,11 @@ Run the application with the required arguments:
 
 ```bash
 java -cp target/flink-application-0.1-SNAPSHOT.jar com.example.FlinkTableStreamer \
-  --source_ddl "<CREATE TABLE ...>" \
-  --sink_topic my-topic \
+  --source_ddl "<CREATE TABLE ... AS SELECT ...>" \
+  --sink_ddl   "<CREATE TABLE ... AS SELECT ...>" \
   --field my_field \
   --value new_value
-  [--bootstrap_servers localhost:9092]
 ```
 
-The provided `CREATE TABLE` statement defines the source table. The application converts the table to a DataStream, replaces the selected field's value using the DataStream API, and writes the modified stream to the specified Kafka topic.
+
+The provided DDL strings may include a trailing `AS SELECT` clause. Only the `CREATE TABLE` portion is used to register the source and sink tables. The application converts the source table to a DataStream, replaces the selected field's value using the DataStream API, and writes the modified stream to the sink table.

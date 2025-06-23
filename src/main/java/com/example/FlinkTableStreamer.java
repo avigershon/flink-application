@@ -37,18 +37,27 @@ public class FlinkTableStreamer {
         throw new IllegalArgumentException("Could not extract table name from DDL");
     }
 
+    private static String stripAsSelect(String ddl) {
+        int idx = ddl.toUpperCase().indexOf(" AS SELECT");
+        if (idx != -1) {
+            return ddl.substring(0, idx);
+        }
+        return ddl;
+    }
+
     public static void main(String[] args) throws Exception {
         Map<String, String> params = parseArgs(args);
         String sourceDDL = params.get("source_ddl");
-        String sinkTopic = params.get("sink_topic");
+        String sinkDDL = params.get("sink_ddl");
         String field = params.get("field");
         String value = params.get("value");
-        String bootstrap = params.getOrDefault("bootstrap_servers", "localhost:9092");
 
-        if (sourceDDL == null || sinkTopic == null || field == null || value == null) {
-            System.err.println("Required arguments: --source_ddl <ddl> --sink_topic <topic> --field <field> --value <value>");
+        if (sourceDDL == null || sinkDDL == null || field == null || value == null) {
+            System.err.println("Required arguments: --source_ddl <ddl> --sink_ddl <ddl> --field <field> --value <value>");
             return;
         }
+        sourceDDL = stripAsSelect(sourceDDL);
+        sinkDDL = stripAsSelect(sinkDDL);
 
         EnvironmentSettings settings = EnvironmentSettings
                 .newInstance()
@@ -60,15 +69,8 @@ public class FlinkTableStreamer {
         tEnv.executeSql(sourceDDL);
         String sourceTable = extractTableName(sourceDDL);
 
-        String sinkDDL = String.format(
-                "CREATE TABLE sink_table LIKE %s (INCLUDING ALL) WITH (" +
-                        " 'connector' = 'kafka'," +
-                        " 'topic' = '%s'," +
-                        " 'properties.bootstrap.servers' = '%s'," +
-                        " 'format' = 'json'" +
-                        ")",
-                sourceTable, sinkTopic, bootstrap);
         tEnv.executeSql(sinkDDL);
+        String sinkTable = extractTableName(sinkDDL);
 
         Table source = tEnv.from(sourceTable);
         DataStream<Row> stream = tEnv.toDataStream(source);
@@ -92,6 +94,6 @@ public class FlinkTableStreamer {
         });
 
         Table modified = tEnv.fromDataStream(modifiedStream).as(names.toArray(new String[0]));
-        modified.executeInsert("sink_table").await();
+        modified.executeInsert(sinkTable).await();
     }
 }
