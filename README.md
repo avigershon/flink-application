@@ -1,6 +1,6 @@
 # Flink Application
 
-This project provides a simple Java Flink 1.21 application. It reads from a table defined at runtime, converts it to a DataStream to replace the value of a specified field, and writes the modified stream to a Kafka topic.
+This project provides a simple Java Flink 2.0 application. It executes a list of DDL statements at startup, registers a few example user-defined functions, and then reads from the `users` table to produce processed rows that are written to the `casino_activities` table.
 
 ## Requirements
 
@@ -16,17 +16,17 @@ Use Maven to build the project:
 mvn package
 ```
 
+The resulting JAR excludes the core Flink libraries, so run it on a
+Flink 2.0 cluster that already supplies these dependencies.
+
 ## Usage
 
 Run the application with the required arguments:
 
 ```bash
-java -cp target/flink-application-0.1-SNAPSHOT.jar com.example.FlinkTableStreamer \
-  --source_ddl "<CREATE TABLE ... AS SELECT ...>" \
-  --sink_ddl   "<CREATE TABLE ... AS SELECT ...>" \
-  --field my_field \
-  --value new_value
+java -cp target/casino-activities-bundled-1.0.jar bi.flink.MainApp \
+  --dbt.ddl "<DDL statement 1>\n<DDL statement 2>"
 ```
 
 
-The provided DDL strings may include a trailing `AS SELECT` clause. Only the `CREATE TABLE` portion is used to register the source and sink tables. The application converts the source table to a DataStream, replaces the selected field's value using the DataStream API, and writes the modified stream to the sink table.
+The DDL string may contain multiple statements separated by newlines. Each statement is executed in order to create the required catalog objects before the job runs. After the setup phase the application processes the `users` table using the provided user-defined functions and inserts the results into `casino_activities`.

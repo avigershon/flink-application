@@ -72,7 +72,7 @@ public class MainApp {
               .filter($("id").isGreater(0L))  // Filter out invalid IDs
               .filter($("name").isNotNull()); // Filter out null names
 
-      processedTable.executeInsert("casino_activities");
+      processedTable.executeInsert("casino_activities").await();
 
     } catch (Exception e) {
       e.printStackTrace();
